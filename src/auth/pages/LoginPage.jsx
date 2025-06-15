@@ -3,21 +3,25 @@ import { Google } from "@mui/icons-material";
 import { Grid, Typography, TextField, Button, Link } from "@mui/material";
 import { AuthLayout } from "../layout/AuthLayout";
 import { useForm } from "../../hooks";
-import { useDispatch } from "react-redux";
-import { checkingAuthentication } from "../../store/auth";
+import { useDispatch, useSelector } from "react-redux";
+import { checkingAuthentication, startGoogleSignIn } from "../../store/auth";
+import { useMemo } from "react";
 
 export const LoginPage = () => {
-  
   const dispatch = useDispatch();
+
+  const { status } = useSelector((state) => state.auth);
 
   const { email, password, handleInputChange } = useForm({
     email: "abc@google.com",
     password: "123456",
   });
 
+  const isAuthenticating = useMemo(() => status === "checking", [status]);
+
   const handleSubmit = (event) => {
     event.preventDefault();
-    
+
     handleValidation();
 
     dispatch(checkingAuthentication(email, password));
@@ -27,13 +31,12 @@ export const LoginPage = () => {
   };
 
   const handleGoogleLogin = () => {
-    
     console.log("Google login initiated");
 
     handleValidation();
 
-    dispatch(checkingAuthentication(email, password));
-    
+    dispatch(startGoogleSignIn(email, password));
+
     // Here you would typically handle the Google login logic, e.g., dispatching an action or calling an API
   };
 
@@ -45,7 +48,7 @@ export const LoginPage = () => {
     }
     // Additional validation logic can be added here
     return true;
-  }
+  };
 
   return (
     <AuthLayout title="Login">
@@ -85,6 +88,7 @@ export const LoginPage = () => {
                 variant="contained"
                 color="primary"
                 type="submit"
+                disabled={isAuthenticating}
               >
                 Login
               </Button>
@@ -95,6 +99,7 @@ export const LoginPage = () => {
                 variant="contained"
                 color="primary"
                 onClick={handleGoogleLogin}
+                disabled={isAuthenticating}
               >
                 <Google />
                 <Typography sx={{ ml: 1 }}>Google</Typography>
