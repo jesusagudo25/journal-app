@@ -1,39 +1,58 @@
 import { Link as RouterLink } from "react-router-dom";
 import { Google } from "@mui/icons-material";
-import { Grid, Typography, TextField, Button, Link } from "@mui/material";
+import {
+  Grid,
+  Typography,
+  TextField,
+  Button,
+  Link,
+  Alert,
+} from "@mui/material";
 import { AuthLayout } from "../layout/AuthLayout";
 import { useForm } from "../../hooks";
 import { useDispatch, useSelector } from "react-redux";
-import { checkingAuthentication, startGoogleSignIn } from "../../store/auth";
+import {
+  startLoginWithEmailPassword,
+  startGoogleSignIn,
+} from "../../store/auth/thunks";
 import { useMemo } from "react";
+
+const formData = {
+    email: "",
+    password: "",
+};
 
 export const LoginPage = () => {
   const dispatch = useDispatch();
 
-  const { status } = useSelector((state) => state.auth);
+  const { status, errorMessage } = useSelector((state) => state.auth);
 
-  const { email, password, handleInputChange } = useForm({
-    email: "abc@google.com",
-    password: "123456",
-  });
+  const { email, password, handleInputChange } = useForm(
+    formData
+  );
 
   const isAuthenticating = useMemo(() => status === "checking", [status]);
 
   const handleSubmit = (event) => {
     event.preventDefault();
 
-    handleValidation();
+    if (isAuthenticating) {
+      return; // Prevent form submission if already authenticating
+    }
 
-    dispatch(checkingAuthentication(email, password));
+    if (!handleValidation()) {
+      return; // If validation fails, do not proceed with login
+    }
 
-    console.log({ email, password });
-    // Here you would typically handle the login logic, e.g., dispatching an action or calling an API
+    //dispatch(checkingAuthentication(email, password));
+    dispatch(startLoginWithEmailPassword(email, password));
   };
 
   const handleGoogleLogin = () => {
     console.log("Google login initiated");
-
-    handleValidation();
+    if (isAuthenticating) {
+      return; // Prevent Google login if already authenticating
+    }
 
     dispatch(startGoogleSignIn(email, password));
 
@@ -52,7 +71,11 @@ export const LoginPage = () => {
 
   return (
     <AuthLayout title="Login">
-      <form onSubmit={handleSubmit} noValidate>
+      <form
+        onSubmit={handleSubmit}
+        noValidate
+        className="animate__animated animate__fadeIn animate__faster"
+      >
         <Grid container>
           <Grid item xs={12} sx={{ mt: 2 }}>
             <TextField
@@ -80,7 +103,14 @@ export const LoginPage = () => {
               autoComplete="current-password"
             />
           </Grid>
-
+          <Grid item xs={12} sx={{ mt: 2 }}>
+            <Alert
+              severity="error"
+              sx={{ display: errorMessage ? "flex" : "none" }}
+            >
+              {errorMessage}
+            </Alert>
+          </Grid>
           <Grid container spacing={2} sx={{ mb: 2, mt: 2 }}>
             <Grid item xs={12} sm={6}>
               <Button
@@ -106,7 +136,6 @@ export const LoginPage = () => {
               </Button>
             </Grid>
           </Grid>
-
           <Grid
             container
             direction="row"
