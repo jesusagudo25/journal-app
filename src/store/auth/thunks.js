@@ -4,6 +4,7 @@ import {
   registerUserWithEmailPassword,
   logoutFirebase
 } from "../../firebase/providers";
+import { clearNotesLogout } from "../journal";
 import { checkingCredentials, logout, login } from "./authSlice";
 
 export const checkingAuthentication = (email, password) => {
@@ -115,6 +116,7 @@ export const startLogout = () => {
     if (result.ok) {
       // Handle successful logout
       console.log("Logout successful");
+      dispatch(clearNotesLogout());
       dispatch(logout());
     } else {
       // Handle error during logout

@@ -1,7 +1,15 @@
-import { addDoc, collection, doc, setDoc } from "firebase/firestore";
+import { addDoc, collection, deleteDoc, doc, setDoc } from "firebase/firestore";
 import { FirebaseDB } from "../../firebase/config";
-import { addNewEmptyNote, setSaving, setActiveNote, setNotes, updateNote } from "./journalSlice";
-import { loadNotes } from "../../helpers";
+import {
+  addNewEmptyNote,
+  setSaving,
+  setActiveNote,
+  setNotes,
+  updateNote,
+  setPhotosToActiveNote,
+  deleteNoteById,
+} from "./journalSlice";
+import { loadNotes, fileUpload } from "../../helpers";
 
 export const startNewNote = () => {
   return async (dispatch, getState) => {
@@ -55,14 +63,48 @@ export const startSavingNote = (note) => {
     const noteToFirestore = { ...activeNote };
     delete noteToFirestore.id;
 
-    const docRef = doc(
-      FirebaseDB,
-      `${uid}/journal/notes/${activeNote.id}`
-    );
-    
+    const docRef = doc(FirebaseDB, `${uid}/journal/notes/${activeNote.id}`);
+
     await setDoc(docRef, noteToFirestore, { merge: true });
 
     dispatch(updateNote(activeNote));
-    dispatch(setActiveNote(activeNote));
+  };
+};
+
+export const startUploadingFiles = (files = []) => {
+  return async (dispatch) => {
+    dispatch(setSaving());
+
+   // await fileUpload(files[0]);
+    const fileUploadPromises = Array.from(files).map(file => fileUpload(file));
+    
+    try {
+      const uploadedFiles = await Promise.all(fileUploadPromises);
+      console.log("Files uploaded successfully:", uploadedFiles);
+      
+      // Here you can dispatch an action to update the note with the new image URLs
+      // For example, you might want to add these URLs to the active note's imageUrls array
+      dispatch(setPhotosToActiveNote(uploadedFiles));
+    } catch (error) {
+      console.error("Error uploading files:", error);
+      // Handle error appropriately, e.g., show a notification
+    }
+    console.log("Files to upload:", files);
+    console.log("Files uploaded:", files.length);
+  };
+};
+
+export const startDeletingNote = () => {
+  return async (dispatch, getState) => {
+    const { uid } = getState().auth;
+    const { active: activeNote } = getState().journal;
+
+    if (!activeNote) throw new Error("No active note to delete");
+
+    const docRef = doc(FirebaseDB, `${uid}/journal/notes/${activeNote.id}`);
+    
+    await deleteDoc(docRef);
+
+    dispatch(deleteNoteById(activeNote.id));
   };
 }
